@@ -1,4 +1,4 @@
-# Carregar o pacote FuzzyR
+library(dplyr)
 library(FuzzyR)
 
 # Criar um dataframe com valores aleatórios de 0 a 1
@@ -57,16 +57,29 @@ media_ponderada <- function(escores, pesos) {
   return(sum(escores * pesos) / sum(pesos))
 }
 
-# Adicionar as regras ao sistema fuzzy
+regras <- data.frame(
+  escore = numeric(),
+  media = numeric(),
+  peso = numeric(),
+  operador = numeric()
+)
+regras <- cbind(dados[0,], regras)
+
 for (i in 1:nrow(comb_categorias)) {
-  escores <- comb_categorias[i, ]
-  media <- round(media_ponderada(escores, variaveis_peso), digits = 0)
-  escores <- as.matrix(cbind(escores, # Valores de entrada
-                             media, # Valores de saída
-                             1, # Peso
-                             1)) # Operador 'AND'
-  fis <<- addrule(fis, escores)
+  escore <- comb_categorias[i, ]
+  colnames(escore) <- colnames(dados)
+  media <- round(media_ponderada(escore, variaveis_peso), digits = 0)
+  escore <- cbind(escore, # Valores de entrada
+                  media = media, # Valores de saída
+                  peso = 1, # Peso
+                  operador = 1) # Operador 'AND'
+  
+  regras <- rbind(regras, escore)
+  escore <- as.matrix(escore)
+  
+  fis <<- addrule(fis, escore)
 }
+write.csv(regras, 'regras.csv')
 
 texto_regras <- showrule(fis)
 
