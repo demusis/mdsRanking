@@ -1,17 +1,77 @@
 library(dplyr)
 library(FuzzyR)
+library(mice)
+library(readxl)
 
-# Criar um dataframe com valores aleatórios de 0 a 1
-dados <- data.frame(coluna1 = runif(50), coluna2 = runif(50), coluna3 = runif(50), coluna4 = runif(50), coluna5 = runif(50))
+# Carrega dados
+dados <- read_excel("Ranking-dos-Estados-2022.xlsx", 
+                     sheet = "Valores")
+dados <- dados[,4:50]
 
-# Definir as categorias das variáveis linguísticas
+# Contagem de valores ausentes por coluna
+valores_ausentes <- sapply(dados, function(x) sum(is.na(x)))
+
+# Total de linhas no dataframe
+total_linhas <- nrow(dados)
+
+# Percentual de valores ausentes por coluna
+percentual_ausentes <- valores_ausentes / total_linhas * 100
+
+# Exibir percentual de valores ausentes por coluna
+print(percentual_ausentes)
+
+# Calculo do percentual total de valores ausentes
+total_valores_ausentes <- sum(valores_ausentes)
+total_valores_dataframe <- total_linhas * total_colunas
+percentual_total_ausentes <- total_valores_ausentes / total_valores_dataframe * 100
+
+# Imprimir o percentual total de valores ausentes
+print(paste0("Percentual total de valores ausentes: ", percentual_total_ausentes, "%"))
+
+# Preencher falhas
+it <- 25
+dados_imputados <- mice(dados, 
+                        m = it, 
+                        maxit = 500, 
+                        method = "pmm", 
+                        seed = 42)
+
+
+# Extrair cada conjunto de dados imputado completo e armazen�-los em uma lista
+conjuntos_imputados <- lapply(1:it, function(i) complete(dados_imputados, i))
+
+# Calcular a m�dia dos valores imputados em cada coluna
+medias_imputadas <- sapply(conjuntos_imputados, colMeans)
+
+# Criar um dataframe com a mesma estrutura que 'dados' e preencher com as m�dias dos valores imputados
+dados_com_medias <- dados
+for (i in 1:total_colunas) {
+  dados_com_medias[is.na(dados[, i]), i] <- medias_imputadas[i]
+}
+
+# Verificar o novo dataframe 'dados_com_medias'
+print(dados_com_medias)
+
+# Salvar o dataframe 'dados_com_medias' em um arquivo CSV
+write.csv(dados_com_medias, "dados_com_medias.csv", row.names = FALSE)
+
+# -----------------------------------------------------------------------------
+
+# Criar um dataframe com valores aleatorios de 0 a 1
+dados <- data.frame(coluna1 = runif(50), 
+                    coluna2 = runif(50), 
+                    coluna3 = runif(50), 
+                    coluna4 = runif(50), 
+                    coluna5 = runif(50))
+
+# Definir as categorias das variaveis linguisticas
 menor <- 0
 maior <- 1000
 categorias <- c("baixo", "medio", "alto")
 categorias_num <- c(1, 2, 3)
 variaveis_peso <- c(1, 1, 1, 1, 1)
 
-# Trapézios
+# Trapezios
 pontos_corte <- seq(from = menor, to = maior, length.out = 8)
 pontos_corte <- round(pontos_corte, digits = 0)
 
@@ -19,11 +79,11 @@ pontos_corte <- round(pontos_corte, digits = 0)
 # a <- newfis ('hyper', fisType = " mamdani ", defuzzMethod = "centroid " )
 fis <<- newfis('C')
 
-# Criar as variáveis linguísticas correspondentes a cada coluna
+# Criar as variaveis linguisticas correspondentes a cada coluna
 for(i in 1:ncol(dados)) {
   fis <<- FuzzyR::addvar(fis, 'input', names(dados)[i], c(menor, maior))
   
-  # Definir as funções de pertinência
+  # Definir as funcoes de pertinencia
   for(j in 1:length(categorias)) {
     fis <<- addmf(fis, 'input', i, categorias[j], 'trapmf', 
                   c(pontos_corte[(j-1)*2+1], 
@@ -33,10 +93,10 @@ for(i in 1:ncol(dados)) {
   }
 }
 
-# Definir variável de saída
+# Definir variavel de saida
 fis <- addvar(fis, 'output', 'escore', c(menor, maior))
 
-# Definir funções de pertinência
+# Definir funcoes de pertinencia
 for(j in 1:length(categorias)) {
   fis <<- addmf(fis, 'output', 1, categorias[j], 'trapmf', 
                 c(pontos_corte[(j-1)*2+1], 
@@ -45,14 +105,14 @@ for(j in 1:length(categorias)) {
                   pontos_corte[(j-1)*2+4]))
 }
 
-# Gerar todas as combinações possíveis entre as categorias linguísticas
+# Gerar todas as combinacoes possiveis entre as categorias linguisticas
 comb_categorias <- expand.grid(categorias_num, 
                                categorias_num, 
                                categorias_num, 
                                categorias_num, 
                                categorias_num)
 
-# Função para calcular a média ponderada
+# Funcao para calcular a media ponderada
 media_ponderada <- function(escores, pesos) {
   return(sum(escores * pesos) / sum(pesos))
 }
@@ -70,7 +130,7 @@ for (i in 1:nrow(comb_categorias)) {
   colnames(escore) <- colnames(dados)
   media <- round(media_ponderada(escore, variaveis_peso), digits = 0)
   escore <- cbind(escore, # Valores de entrada
-                  media = media, # Valores de saída
+                  media = media, # Valores de saida
                   peso = 1, # Peso
                   operador = 1) # Operador 'AND'
   
@@ -83,7 +143,7 @@ write.csv(regras, 'regras.csv')
 
 texto_regras <- showrule(fis)
 
-# Plotar as funções de pertinência
+# Plotar as funcoes de pertinencia
 for(i in 1:ncol(dados)) {
   plotmf(fis, 'input', i)
 }
@@ -93,10 +153,10 @@ dados_exemplo <- c(100, 100, 100, 100, 100)
 
 # Avaliar o sistema fuzzy com os dados de exemplo
 resultado <- evalfis(dados_exemplo, fis, draw = FALSE)
-cat("Resultado da função de saída:", resultado, "\n")
+cat("Resultado da funcao de saida:", resultado, "\n")
 
 
-# Plotar a função de saída
+# Plotar a funcao de saaida
 nome_var = fis$output[[1]]$name
 plot(D_x, D_y, type = "l", col = "blue", lwd = 3,
      xlab=nome_var,
