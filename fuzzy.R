@@ -1,7 +1,14 @@
 library(dplyr)
 library(FuzzyR)
+ library(FactoMineR)
+ library(factoextra)
+ library(GPArotation)
+library(MASS)
 library(mice)
 library(readxl)
+library(readr)
+library(vegan)
+
 
 # Carrega dados
 dados <- read_excel("Ranking-dos-Estados-2022.xlsx", 
@@ -54,6 +61,58 @@ print(dados_com_medias)
 
 # Salvar o dataframe 'dados_com_medias' em um arquivo CSV
 write.csv(dados_com_medias, "dados_com_medias.csv", row.names = FALSE)
+
+# -----------------------------------------------------------------------------
+
+# Ler o arquivo CSV
+dados_com_medias <- read_csv("dados_com_medias.csv")
+
+# Calcular a matriz de distâncias
+matriz_distancias <- dist(dados[, 1:11])
+
+# Realizar o MDS não métrico
+mds_resultado <- isoMDS(matriz_distancias)
+
+# Executar o teste de permutação para o MDS não métrico
+n_permutacoes <- 999
+set.seed(123)
+teste_permutacao <- permutest(mds_resultado, distance = "euclidean", nperm = n_permutacoes)
+
+# Exibir os resultados do teste de permutação
+cat("P-valor:", teste_permutacao$Pvals, "\n")
+
+# Exibir os resultados do MDS não métrico
+print(mds_resultado)
+
+# Gráfico das coordenadas do MDS não métrico
+plot(mds_resultado$points, main = "MDS não métrico", xlab = "Dimensão 1", ylab = "Dimensão 2", pch = 19)
+
+# Calcular o stress
+stress <- mds_resultado$stress
+cat("Stress:", stress, "\n")
+
+# Calcular o stress relativo (normalized stress)
+stress_relativo <- stress / sum(matriz_distancias^2)
+cat("Stress relativo:", stress_relativo, "\n")
+
+
+
+
+# Gráfico para as variáveis
+fviz_pca_var(pca_resultado, axes.title = c("Dimensão 1", "Dimensão 2"))
+
+# Tabela com os percentuais de variância explicados por autovalor
+percentuais_explicados <- pca_resultado$eig
+percentuais_explicados <- data.frame(round(percentuais_explicados, 2))
+colnames(percentuais_explicados) <- c("Autovalor", "% Variância Explicada", "% Acumulado")
+print(percentuais_explicados)
+
+# Tabela com os pesos para cada variável por componente principal
+pesos_variaveis <- pca_resultado$var$coord
+pesos_variaveis <- data.frame(round(pesos_variaveis, 4))
+colnames(pesos_variaveis) <- c("Dimensão 1", "Dimensão 2", "Dimensão 3", "Dimensão 4", "Dimensão 5", "Dimensão 6", "Dimensão 7", "Dimensão 8", "Dimensão 9", "Dimensão 10", "Dimensão 11")
+rownames(pesos_variaveis) <- colnames(dados[, 1:11])
+print(pesos_variaveis)
 
 # -----------------------------------------------------------------------------
 
