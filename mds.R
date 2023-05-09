@@ -49,7 +49,6 @@ an_mds <- function(dados, k) {
   # Excluir as variáveis com base no critério estabelecido
   dados_reduzidos <- dados[, !variaveis_excluir]
 
-  
   # Determinar o número máximo de dimensões a serem testadas
   max_dimensoes <- 7
   
@@ -58,8 +57,8 @@ an_mds <- function(dados, k) {
   
   matriz_distancias <- dist(dados_reduzidos)
   for (k in 1:max_dimensoes) {
-    mds_resultado <- isoMDS(matriz_distancias, k = k)
-    stress_valores[k] <- calc_stress(mds_resultado$points, matriz_distancias)
+    mds_resultados <- isoMDS(matriz_distancias, k = k)
+    stress_valores[k] <- calc_stress(mds_resultados$points, matriz_distancias)
   }
   
   # Criar o gráfico scree
@@ -71,13 +70,14 @@ an_mds <- function(dados, k) {
        ylab = "Stress")
   
   # Identificar o ponto de cotovelo
-  cotovelo <- which.max(diff(diff(stress_valores)))
-  points(cotovelo, stress_valores[cotovelo], col = "red", pch = 19)
+  # cotovelo <- which.max(diff(diff(stress_valores)))
+  # points(cotovelo, stress_valores[cotovelo], col = "red", pch = 19)
   
-    
-  return(dados_reduzidos)
+  aux <- list(mds_resultado, dados_reduzidos)
+  
+  return(aux)
 }
 
-dados_b <- an_mds(dados_a, 3)
-dados_c <- an_mds(dados_b, 3)
+modelo_as <- an_mds(dados_a, 3)
+
 
