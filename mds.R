@@ -5,19 +5,19 @@ library(MASS)
 # Ler o arquivo CSV
 dados_a <- read_csv("dados_com_medias.csv")
 
-an_mds <- function(dados, k) {
+# Função para calcular o stress do MDS não métrico
+calc_stress <- function(mds_coords, matriz_distancias) {
+  dist_mds <- dist(mds_coords)
+  stress <- sum((matriz_distancias - dist_mds)^2) / sum(matriz_distancias^2)
+  return(stress)
+}
+
+p_mds <- function(dados, k) {
   # Calcular a matriz de distâncias
   matriz_distancias <- dist(dados)
   
   # Realizar o MDS não métrico
   mds_resultado <- isoMDS(matriz_distancias, k=k)
-  
-  # Função para calcular o stress do MDS não métrico
-  calc_stress <- function(mds_coords, matriz_distancias) {
-    dist_mds <- dist(mds_coords)
-    stress <- sum((matriz_distancias - dist_mds)^2) / sum(matriz_distancias^2)
-    return(stress)
-  }
   
   # Executar o teste de permutação para o MDS não métrico
   n_permutacoes <- 999
@@ -36,6 +36,21 @@ an_mds <- function(dados, k) {
   p_valor <- sum(stress_perm <= stress_obs) / n_permutacoes
   cat("P-valor:", p_valor, "\n")
   
+  aux <- list(mds_resultado, p_valor)
+  return(p_valor)
+ }  
+
+p_mds(dados_a, 3)
+
+# ------------------------------------------------------------------------------
+
+sv_mds <- function(dados, k) {
+  # Calcular a matriz de distâncias
+  matriz_distancias <- dist(dados)
+  
+  # Realizar o MDS não métrico
+  mds_resultado <- isoMDS(matriz_distancias, k=k)
+  
   # Avaliando as variáveis
   # Calcular as correlações entre as variáveis e as coordenadas do MDS
   correlacoes <- cor(dados, mds_resultado$points)
@@ -48,17 +63,27 @@ an_mds <- function(dados, k) {
   
   # Excluir as variáveis com base no critério estabelecido
   dados_reduzidos <- dados[, !variaveis_excluir]
+  
+  aux <- list(correlacoes, dados_reduzidos)
+  
+  return(aux)
+}
 
+sv_mds(dados_a, 3)
+
+# ------------------------------------------------------------------------------
+
+c_mds <- function(dados) {
   # Determinar o número máximo de dimensões a serem testadas
   max_dimensoes <- 7
   
   # Calcular o stress para cada número de dimensões
   stress_valores <- numeric(max_dimensoes)
   
-  matriz_distancias <- dist(dados_reduzidos)
-  for (k in 1:max_dimensoes) {
-    mds_resultados <- isoMDS(matriz_distancias, k = k)
-    stress_valores[k] <- calc_stress(mds_resultados$points, matriz_distancias)
+  matriz_distancias <- dist(dados) # Distância Eclidiana
+  for (nd in 1:max_dimensoes) {
+    mds_resultados <- isoMDS(matriz_distancias, k = nd)
+    stress_valores[nd] <- calc_stress(mds_resultados$points, matriz_distancias)
   }
   
   # Criar o gráfico scree
@@ -70,14 +95,13 @@ an_mds <- function(dados, k) {
        ylab = "Stress")
   
   # Identificar o ponto de cotovelo
-  # cotovelo <- which.max(diff(diff(stress_valores)))
-  # points(cotovelo, stress_valores[cotovelo], col = "red", pch = 19)
+  cotovelo <- which.max(diff(diff(stress_valores))) + 1
+  points(cotovelo, stress_valores[cotovelo], col = "red", pch = 19)
   
-  aux <- list(mds_resultado, dados_reduzidos)
-  
+  aux <- list(cotovelo, mds_resultados[cotovelo])
   return(aux)
 }
 
-modelo_as <- an_mds(dados_a, 3)
+print(c_mds(dados_a+1))
 
 
