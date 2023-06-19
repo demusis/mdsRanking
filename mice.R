@@ -1,6 +1,7 @@
 library(dplyr)
 library(FuzzyR)
-
+library(mice)
+library(readxl)
 
 # Carrega dados
 dados_aux <- read_excel("Ranking-dos-Estados-2022.xlsx", 
@@ -14,6 +15,9 @@ preenche_falhas <- function(dados) {
   
   # Total de linhas no dataframe
   total_linhas <- nrow(dados)
+  
+  # Obtendo o total de colunas
+  total_colunas <- ncol(dados)
   
   # Percentual de valores ausentes por coluna
   percentual_ausentes <- valores_ausentes / total_linhas * 100

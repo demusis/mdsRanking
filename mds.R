@@ -12,6 +12,7 @@ calc_stress <- function(mds_coords, matriz_distancias) {
   return(stress)
 }
 
+# Calcula o p associado a dimensao fornecida
 p_mds <- function(dados, k) {
   # Calcular a matriz de distâncias
   matriz_distancias <- dist(dados)
@@ -40,10 +41,13 @@ p_mds <- function(dados, k) {
   return(p_valor)
  }  
 
-p_mds(dados_a, 3)
+p_mds(dados_a, 2)
+p_mds(dados_a, 3) # <-  
 
 # ------------------------------------------------------------------------------
 
+
+# Seleciona variaveis a parter co coeficiente de correlacao
 sv_mds <- function(dados, k) {
   # Calcular a matriz de distâncias
   matriz_distancias <- dist(dados)
@@ -58,7 +62,8 @@ sv_mds <- function(dados, k) {
   # Estabelecer um limite de correlação
   limite_correlacao <- 0.3
   
-  # Encontrar as variáveis cujas correlações em ambas as dimensões estão abaixo do limite de correlação
+  # Encontrar as variáveis cujas correlações em ambas as dimensões estão abaixo 
+  # do limite de correlação
   variaveis_excluir <- apply(abs(correlacoes) < limite_correlacao, 1, all)
   
   # Excluir as variáveis com base no critério estabelecido
@@ -69,7 +74,7 @@ sv_mds <- function(dados, k) {
   return(aux)
 }
 
-sv_mds(dados_a, 3)
+dados_sv <- sv_mds(dados_a, 3)
 
 # ------------------------------------------------------------------------------
 

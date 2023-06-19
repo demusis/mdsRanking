@@ -111,7 +111,7 @@ resultado <- evalfis(dados_exemplo, fis, draw = FALSE)
 cat("Resultado da funcao de saida:", resultado, "\n")
 
 
-# Plotar a funcao de saaida
+# Plotar a funcao de saida
 nome_var = fis$output[[1]]$name
 plot(D_x, D_y, type = "l", col = "blue", lwd = 3,
      xlab=nome_var,
