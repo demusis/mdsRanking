@@ -4,9 +4,9 @@ library(mice)
 library(readxl)
 
 # Carrega dados
-dados_aux <- read_excel("Ranking-dos-Estados-2022.xlsx", 
+dados <- read_excel("Ranking-dos-Estados-2022.xlsx", 
                         sheet = "Valores")
-dados_aux <- dados_aux[,4:50]
+dados_aux <- dados[,4:50]
 
 
 preenche_falhas <- function(dados) {

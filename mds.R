@@ -3,6 +3,8 @@ library(readr)
 library(MASS)
 
 # Ler o arquivo CSV
+dados <- read_excel("Ranking-dos-Estados-2022.xlsx", 
+                    sheet = "Valores")
 dados_a <- read_csv("dados_com_medias.csv")
 
 # Função para calcular o stress do MDS não métrico
@@ -37,17 +39,17 @@ p_mds <- function(dados, k) {
   p_valor <- sum(stress_perm <= stress_obs) / n_permutacoes
   cat("P-valor:", p_valor, "\n")
   
-  aux <- list(mds_resultado, p_valor)
   return(p_valor)
  }  
 
 p_mds(dados_a, 2)
 p_mds(dados_a, 3) # <-  
 
+
 # ------------------------------------------------------------------------------
 
 
-# Seleciona variaveis a parter co coeficiente de correlacao
+# Seleciona variaveis a parter do coeficiente de correlacao
 sv_mds <- function(dados, k) {
   # Calcular a matriz de distâncias
   matriz_distancias <- dist(dados)
@@ -69,12 +71,35 @@ sv_mds <- function(dados, k) {
   # Excluir as variáveis com base no critério estabelecido
   dados_reduzidos <- dados[, !variaveis_excluir]
   
-  aux <- list(correlacoes, dados_reduzidos)
+  aux <- list(correlacoes, 
+              dados_reduzidos, 
+              mds_resultado)
   
   return(aux)
 }
 
+# Transformacao linear dos valores de uma coluna de modo que o menor 
+# corresponda a zero e o maior a 100.
+normalize <- function(x) {
+  return (100*(x - min(x)) / (max(x) - min(x)))
+}
+
 dados_sv <- sv_mds(dados_a, 3)
+corr <- dados_sv[[1]]
+# Salvar o dataframe em um arquivo CSV
+write.csv(corr, "correlacoes.csv", row.names = FALSE)
+
+dados_dr <- dados_sv[[2]]
+dados_mds <- dados_sv[[3]]
+
+pontos <- as.data.frame(dados_mds$points)
+pontos_nm <- as.data.frame(lapply(pontos, normalize))
+
+dados_v <- cbind(dados, pontos_nm)
+plot(pontos_nm)
+
+# Salvar o dataframe em um arquivo CSV
+write.csv(dados_v, "dados_v.csv", row.names = FALSE)
 
 # ------------------------------------------------------------------------------
 
