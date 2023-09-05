@@ -1,12 +1,20 @@
 library(dplyr)
-library(FuzzyR)
 library(mice)
 library(readxl)
 
 # Carrega dados
-dados <- read_excel("Ranking-dos-Estados-2022.xlsx", 
+dados <- read_excel("Ranking-dos-Estados-2023.xlsx", 
                         sheet = "Valores")
-dados_aux <- dados[,4:50]
+dados_aux <- dados[,3:50]
+
+flux(dados_aux)
+
+# pobs = Proportion observed, influx = Influx
+# outflux = Outflux ainb = Average inbound statistic aout = Average outbound statistic 
+# fico = Fraction of incomplete cases among cases with Yj observed
+
+fluxplot(dados_aux)
+md.pattern(dados_aux, rotate.names = TRUE)
 
 
 preenche_falhas <- function(dados) {
@@ -33,31 +41,12 @@ preenche_falhas <- function(dados) {
   # Imprimir o percentual total de valores ausentes
   print(paste0("Percentual total de valores ausentes: ", percentual_total_ausentes, "%"))
   
-  # Preencher falhas
-  it <- 25
-  dados_imputados <- mice(dados, 
-                          m = it, 
-                          maxit = 500, 
-                          method = "pmm", 
-                          seed = 42)
-  
-  
-  # Extrair cada conjunto de dados imputado completo e armazená-los em uma lista
-  conjuntos_imputados <- lapply(1:it, function(i) complete(dados_imputados, i))
-  
-  # Calcular a média dos valores imputados em cada coluna
-  medias_imputadas <- sapply(conjuntos_imputados, colMeans)
-  
-  # Criar um dataframe com a mesma estrutura que 'dados' e preencher com as médias dos valores imputados
-  dados_com_medias <- dados
-  for (i in 1:total_colunas) {
-    dados_com_medias[is.na(dados[, i]), i] <- medias_imputadas[i]
-  }
-  return(dados_com_medias)
+  imp <- mice(dados)
+  return(complete(imp))  
 }
 
 dados_prenchidos <- preenche_falhas(dados_aux)
 print(dados_prenchidos)
 
 # Salvar o dataframe em um arquivo CSV
-write.csv(dados_prenchidos, "dados_com_medias.csv", row.names = FALSE)
+write.csv(dados_prenchidos, "dados_com_medias_2023b.csv", row.names = FALSE)

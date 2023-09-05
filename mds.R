@@ -1,13 +1,16 @@
 # Carregar pacotes necessários
 library(readr)
 library(MASS)
+library(ggplot2)
+library(gridExtra)
+
 
 # Ler o arquivo CSV
-dados <- read_excel("Ranking-dos-Estados-2022.xlsx", 
-                    sheet = "Valores")
-dados_a <- read_csv("dados_com_medias.csv")
+# dados <- read_excel("Ranking-dos-Estados-2022.xlsx", 
+#                     sheet = "Valores")
+dados_a <- read_csv("dados_com_medias_2023b.csv")
 
-# Função para calcular o stress do MDS não métrico
+# Função para calcular o stress do MDS não métrico (Kruskal's Non-metric Multidimensional Scaling)
 calc_stress <- function(mds_coords, matriz_distancias) {
   dist_mds <- dist(mds_coords)
   stress <- sum((matriz_distancias - dist_mds)^2) / sum(matriz_distancias^2)
@@ -42,8 +45,10 @@ p_mds <- function(dados, k) {
   return(p_valor)
  }  
 
+p_mds(dados_a, 1)
 p_mds(dados_a, 2)
 p_mds(dados_a, 3) # <-  
+p_mds(dados_a, 4) # <-  
 
 
 # ------------------------------------------------------------------------------
@@ -62,7 +67,7 @@ sv_mds <- function(dados, k) {
   correlacoes <- cor(dados, mds_resultado$points)
   
   # Estabelecer um limite de correlação
-  limite_correlacao <- 0.3
+  limite_correlacao <- 0.0
   
   # Encontrar as variáveis cujas correlações em ambas as dimensões estão abaixo 
   # do limite de correlação
@@ -78,14 +83,22 @@ sv_mds <- function(dados, k) {
   return(aux)
 }
 
+dados_sv <- sv_mds(dados_a, 3)
+corr <- dados_sv[[1]]
+dados_red <- dados_sv[[2]]
+mds_res <- dados_sv[[3]]$points
+
+
+# ------------------------------------------------------------------------------
+
+
 # Transformacao linear dos valores de uma coluna de modo que o menor 
 # corresponda a zero e o maior a 100.
 normalize <- function(x) {
   return (100*(x - min(x)) / (max(x) - min(x)))
 }
 
-dados_sv <- sv_mds(dados_a, 3)
-corr <- dados_sv[[1]]
+
 # Salvar o dataframe em um arquivo CSV
 write.csv(corr, "correlacoes.csv", row.names = FALSE)
 
@@ -127,11 +140,25 @@ c_mds <- function(dados) {
   # Identificar o ponto de cotovelo
   cotovelo <- which.max(diff(diff(stress_valores))) + 1
   points(cotovelo, stress_valores[cotovelo], col = "red", pch = 19)
+  points(cotovelo+1, stress_valores[cotovelo+1], col = "red", pch = 19)
   
   aux <- list(cotovelo, mds_resultados[cotovelo])
   return(aux)
 }
 
-print(c_mds(dados_a+1))
+aux <- c_mds(dados_a+1)
+aux[2]
 
+dados <- read_excel("Ranking-dos-Estados-2023.xlsx", 
+                    sheet = "Valores")
+dados_res <- cbind(dados[,1:3], mds_res, dados_a)
+dados_res <- dados_res[, -3] 
 
+colnames(dados_res)[3:5] <- c('mds_1', 'mds_2', 'mds_3')
+
+dados_res$n_mds_1 <- normalize(dados_res$mds_1)
+dados_res$n_mds_2 <- normalize(dados_res$mds_2)
+dados_res$n_mds_3 <- normalize(dados_res$mds_3)
+
+# Salvar o dataframe em um arquivo CSV
+write.csv(dados_res, "res_2023.csv", row.names = FALSE)
