@@ -3,6 +3,9 @@ library(readr)
 library(MASS)
 library(ggplot2)
 library(gridExtra)
+library(Hmisc)
+library(dplyr)
+
 
 
 # Ler o arquivo CSV
@@ -26,14 +29,14 @@ p_mds <- function(dados, k) {
   mds_resultado <- isoMDS(matriz_distancias, k=k)
   
   # Executar o teste de permutação para o MDS não métrico
-  n_permutacoes <- 999
+  n_permutacoes <- 25
   set.seed(123)
   stress_obs <- calc_stress(mds_resultado$points, matriz_distancias)
   stress_perm <- numeric(n_permutacoes)
   
   for (i in 1:n_permutacoes) {
     dados_permutados <- dados[sample(nrow(dados)), ]
-    matriz_distancias_permutada <- dist(dados_permutados[, 1:11])
+    matriz_distancias_permutada <- dist(dados_permutados[, 1:n_permutacoes])
     mds_resultado_permutado <- isoMDS(matriz_distancias_permutada, maxit = 50, trace = FALSE)
     stress_perm[i] <- calc_stress(mds_resultado_permutado$points, matriz_distancias_permutada)
   }
@@ -47,72 +50,40 @@ p_mds <- function(dados, k) {
 
 p_mds(dados_a, 1)
 p_mds(dados_a, 2)
-p_mds(dados_a, 3) # <-  
+p_mds(dados_a, 3)  
 p_mds(dados_a, 4) # <-  
-
-
-# ------------------------------------------------------------------------------
-
-
-# Seleciona variaveis a parter do coeficiente de correlacao
-sv_mds <- function(dados, k) {
-  # Calcular a matriz de distâncias
-  matriz_distancias <- dist(dados)
-  
-  # Realizar o MDS não métrico
-  mds_resultado <- isoMDS(matriz_distancias, k=k)
-  
-  # Avaliando as variáveis
-  # Calcular as correlações entre as variáveis e as coordenadas do MDS
-  correlacoes <- cor(dados, mds_resultado$points)
-  
-  # Estabelecer um limite de correlação
-  limite_correlacao <- 0.0
-  
-  # Encontrar as variáveis cujas correlações em ambas as dimensões estão abaixo 
-  # do limite de correlação
-  variaveis_excluir <- apply(abs(correlacoes) < limite_correlacao, 1, all)
-  
-  # Excluir as variáveis com base no critério estabelecido
-  dados_reduzidos <- dados[, !variaveis_excluir]
-  
-  aux <- list(correlacoes, 
-              dados_reduzidos, 
-              mds_resultado)
-  
-  return(aux)
-}
-
-dados_sv <- sv_mds(dados_a, 3)
-corr <- dados_sv[[1]]
-dados_red <- dados_sv[[2]]
-mds_res <- dados_sv[[3]]$points
-
+p_mds(dados_a, 5)
 
 # ------------------------------------------------------------------------------
 
+# Calcular as correlações entre as variáveis e as coordenadas do MDS
+mds_resultado <- isoMDS(dist(dados_a), k=4)
+correlacoes <- rcorr(as.matrix(dados_a), 
+                     as.matrix(mds_resultado$points))
+
+coef_correlacoes <- as.data.frame(correlacoes$r)[103:106]
+colnames(coef_correlacoes) <- c('mds_1', 'mds_2', 'mds_3', 'mds_4')
+p_correlacoes <- as.data.frame(correlacoes$P)[103:106]
+colnames(p_correlacoes) <- c('mds_1', 'mds_2', 'mds_3', 'mds_4')
+
+dados <- read_excel("Ranking-dos-Estados-2023.xlsx", 
+                    sheet = "Valores")
+
+mds_res <- cbind(dados[, c(1, 2)], mds_resultado$points, dados_a)
+colnames(mds_res)[3:6] <- c('mds_1', 'mds_2', 'mds_3', 'mds_4')
+
+# Salvar o dataframe em um arquivo CSV
+write.csv(coef_correlacoes, "coef_correlações.csv", row.names = TRUE)
+write.csv(p_correlacoes, "p_correlações.csv", row.names = TRUE)
+write.csv(mds_res, "res_dados.csv", row.names = FALSE)
+
+# ------------------------------------------------------------------------------
 
 # Transformacao linear dos valores de uma coluna de modo que o menor 
 # corresponda a zero e o maior a 100.
 normalize <- function(x) {
   return (100*(x - min(x)) / (max(x) - min(x)))
 }
-
-
-# Salvar o dataframe em um arquivo CSV
-write.csv(corr, "correlacoes.csv", row.names = FALSE)
-
-dados_dr <- dados_sv[[2]]
-dados_mds <- dados_sv[[3]]
-
-pontos <- as.data.frame(dados_mds$points)
-pontos_nm <- as.data.frame(lapply(pontos, normalize))
-
-dados_v <- cbind(dados, pontos_nm)
-plot(pontos_nm)
-
-# Salvar o dataframe em um arquivo CSV
-write.csv(dados_v, "dados_v.csv", row.names = FALSE)
 
 # ------------------------------------------------------------------------------
 
@@ -141,6 +112,7 @@ c_mds <- function(dados) {
   cotovelo <- which.max(diff(diff(stress_valores))) + 1
   points(cotovelo, stress_valores[cotovelo], col = "red", pch = 19)
   points(cotovelo+1, stress_valores[cotovelo+1], col = "red", pch = 19)
+  points(cotovelo+2, stress_valores[cotovelo+2], col = "red", pch = 19)
   
   aux <- list(cotovelo, mds_resultados[cotovelo])
   return(aux)
@@ -148,17 +120,3 @@ c_mds <- function(dados) {
 
 aux <- c_mds(dados_a+1)
 aux[2]
-
-dados <- read_excel("Ranking-dos-Estados-2023.xlsx", 
-                    sheet = "Valores")
-dados_res <- cbind(dados[,1:3], mds_res, dados_a)
-dados_res <- dados_res[, -3] 
-
-colnames(dados_res)[3:5] <- c('mds_1', 'mds_2', 'mds_3')
-
-dados_res$n_mds_1 <- normalize(dados_res$mds_1)
-dados_res$n_mds_2 <- normalize(dados_res$mds_2)
-dados_res$n_mds_3 <- normalize(dados_res$mds_3)
-
-# Salvar o dataframe em um arquivo CSV
-write.csv(dados_res, "res_2023.csv", row.names = FALSE)
