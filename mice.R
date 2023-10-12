@@ -5,9 +5,12 @@ library(readxl)
 # Carrega dados
 dados <- read_excel("Ranking-dos-Estados-2023.xlsx", 
                         sheet = "Valores")
-dados_aux <- dados[,3:50]
+dados_aux <- dados[,3:ncol(dados)]
 
-flux(dados_aux)
+
+
+falhas <- flux(dados_aux)
+write.csv(falhas, "falhas.csv")
 
 # pobs = Proportion observed, influx = Influx
 # outflux = Outflux ainb = Average inbound statistic aout = Average outbound statistic 

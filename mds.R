@@ -5,13 +5,14 @@ library(ggplot2)
 library(gridExtra)
 library(Hmisc)
 library(dplyr)
-
-
-
+ 
 # Ler o arquivo CSV
 # dados <- read_excel("Ranking-dos-Estados-2022.xlsx", 
 #                     sheet = "Valores")
 dados_a <- read_csv("dados_com_medias_2023b.csv")
+dados_a <- dados_a[, -which(names(dados_a) %in% c("IN_TC", "IN_AC"))]
+dados_a <- dados_a[, -99]
+
 
 # Função para calcular o stress do MDS não métrico (Kruskal's Non-metric Multidimensional Scaling)
 calc_stress <- function(mds_coords, matriz_distancias) {
@@ -58,12 +59,16 @@ p_mds(dados_a, 5)
 
 # Calcular as correlações entre as variáveis e as coordenadas do MDS
 mds_resultado <- isoMDS(dist(dados_a), k=4)
-correlacoes <- rcorr(as.matrix(dados_a), 
-                     as.matrix(mds_resultado$points))
+pontos <- mds_resultado$points
+write.csv(pontos, "mds.csv", row.names = FALSE)
 
-coef_correlacoes <- as.data.frame(correlacoes$r)[103:106]
+correlacoes <- rcorr(as.matrix(dados_a), 
+                     as.matrix(pontos))
+
+coef_correlacoes <- as.data.frame(correlacoes$r)[99:102]
 colnames(coef_correlacoes) <- c('mds_1', 'mds_2', 'mds_3', 'mds_4')
-p_correlacoes <- as.data.frame(correlacoes$P)[103:106]
+
+p_correlacoes <- as.data.frame(correlacoes$P)[99:102]
 colnames(p_correlacoes) <- c('mds_1', 'mds_2', 'mds_3', 'mds_4')
 
 dados <- read_excel("Ranking-dos-Estados-2023.xlsx", 
