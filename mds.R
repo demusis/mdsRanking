@@ -4,7 +4,8 @@ library(MASS)
 library(ggplot2)
 library(gridExtra)
 library(Hmisc)
-library(dplyr)
+library(dplyr) 
+library(readxl)
  
 # Ler o arquivo CSV
 # dados <- read_excel("Ranking-dos-Estados-2022.xlsx", 
